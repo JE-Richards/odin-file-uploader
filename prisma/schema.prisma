@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Represents a user in the system, stored in the `users` table. 
+/// Each user has a unique ID, email, and username.
+/// The `password` field is securely hashed, and `created_at` records when the account was created.
+model User {
+  id        String   @id @default(uuid()) /// Unique user ID (UUID).
+  username  String   @unique /// Unique username chosen by the user.
+  email     String   @unique /// Unique email address used for authentication.
+  password  String /// Hashed password for authentication.
+  createdAt DateTime @default(now()) @map("created_at") /// Timestamp of when the user was created.
+
+  files        File[] /// Files uploaded by the user.
+  sessions     Session[] /// Active sessions associated with the user.
+  folders      Folder[] /// Folders owned by the user.
+  sharedFile   SharedFile[] /// Files shared with other users.
+  sharedFolder SharedFolder[] /// Folders shared with other users.
+  shareLink    SharedLink[] /// Temporary share links created by the user.
+
+  @@map("users")
+}
+
+/// Represents a file uploaded to the system, stored in the `files` table.
+/// Each file has a unique ID and storage url.
+model File {
+  id         String   @id @default(uuid()) /// Unique file ID (UUID).
+  filename   String /// Filename of the uploaded file.
+  url        String   @unique /// URL for the file hosted on a cloud storage solution.
+  uploadedAt DateTime @default(now()) @map("uploaded_at") /// Timestamp of when the file was uploaded.
+
+  userId String @map("user_id") /// ID of the user who uploaded the file.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) /// Relation to the user who uploaded the file.
+
+  folder     Folder[] /// Folder the file is stored in.
+  shared     SharedFile[] /// Users the file is shared with.
+  sharedLink SharedLink[] /// Links created to share the file publicly.
+
+  @@map("files")
+}
+
+/// Represents an authenticated user's session, stored in the `sessions` table.
+model Session {
+  id        String   @id @default(uuid()) /// Unique session ID (UUID).
+  sid       String   @unique /// Unique session identified (e.g. session token).
+  data      String /// Serialized session data (e.g. user state, authentication details).
+  expiresAt DateTime @map("expires_at") /// Timestamp of when the session will expire.
+
+  userId String? @map("user_id") /// ID of the user associated with this session (nullable for guest sessions).
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade) /// Relation to the user associated with this session.
+
+  @@map("sessions")
+}
+
+/// Represents a folder within the system, stored in the `folders` table.
+/// Each folder has a unique ID.
+/// Additional uniqueness is forced at 'folder level' to ensure a user can't have duplicate folders at the same level. Uniqueness checks for `name`, `user_id`, and `parent_folder_id`.
+model Folder {
+  id   String @id @default(uuid()) /// Unique folder ID (UUID).
+  name String /// Name of the folder chosen by the user.
+
+  userId String @map("user_id") /// ID of the user who owns the folder.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentFolderId String? @map("parent_folder_id") /// ID of a parent folder, allowing for nested folders. Nullable for root folders.
+  parentFolder   Folder? @relation("FolderHierarchy", fields: [parentFolderId], references: [id], onDelete: Cascade) /// Relation to the parent folder (nullable for root folders).)
+
+  files     File[] /// Files contained within a folder.
+  children  Folder[]       @relation("FolderHierarchy") /// Inverse relation for child folders
+  shared    SharedFolder[] /// Users the folder is shared with.
+  ShareLink SharedLink[] /// Links created to share the folder publicly.
+
+  @@unique([name, userId, parentFolderId]) // Ensure uniqueness at same folder level
+  @@map("folders")
+}
+
+/// Represents a file that has been shared with a specific user, stored in the `share_files` table.
+/// Defines the permissions granted to the recipient.
+model SharedFile {
+  id         String     @id @default(uuid()) /// Unique shared file ID (UUID).
+  permission Permission @default(READ) /// Permission level for the shared file (READ or EDIT).
+  sharedAt   DateTime   @default(now()) @map("shared_at") /// Timestamp for when the file was shared.
+  expiresAt  DateTime?  @map("expires_at") /// Optional expiration date for the shared access.
+
+  fileId String @map("file_id") // ID of the shared file.
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade) /// Relation to the file being shared with the user.
+
+  sharedWithUserId String @map("shared_with_user_id") /// ID of the recipient user.
+  SharedWithUser   User   @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade) /// Relation to the user receiving the shared file.
+
+  @@unique([fileId, sharedWithUserId]) // prevent duplicate sharing
+  @@map("share_files")
+}
+
+/// Represents a folder that has been shared with a specific user, stored in the `share_folders` table.
+/// Defines the permissions granted to the recipient.
+model SharedFolder {
+  id         String     @id @default(uuid()) /// Unique shared folder ID (UUID).
+  permission Permission @default(READ) /// Permission level for the shared folder (READ or EDIT).
+  sharedAt   DateTime   @default(now()) @map("shared_at") /// Timestamp of when the folder was shared.
+  expiresAt  DateTime?  @map("expires_at") /// Optional expiration date for the shared access.
+
+  folderId String @map("folder_id") /// ID of the shared folder.
+  folder   Folder @relation(fields: [folderId], references: [id], onDelete: Cascade) /// Relation to the folder being shared.
+
+  sharedWithUserId String @map("shared_with_user_id") /// ID of the recipient user.
+  sharedWithUser   User   @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade) /// Relation to the recipient user.
+
+  @@unique([folderId, sharedWithUserId]) // prevent duplicate sharing
+  @@map("share_folders")
+}
+
+/// Represents a publicly accessible shareable link for a file or folder, stored in the `share_links` table.
+/// This link can expire after a set time. The expiration time defaults to 24 hours after creation unless the user specifies otherwise.
+model SharedLink {
+  id        String   @id @default(uuid()) /// Unique share link ID (UUID).
+  url       String   @unique /// Publicly accessible URL for the shared file or folder.
+  createdAt DateTime @default(now()) @map("created_at") /// Timestamp of when the link was created.
+  expiresAt DateTime @default(dbgenerated("(now() + interval '24 hours')")) @map("expires_at") /// Link experiation timestamp (default: 24 hours).
+
+  // A share link can be for either a file or a folder
+  fileId   String? @map("file_id") /// ID of the shared file (if applicable).
+  file     File?   @relation(fields: [fileId], references: [id], onDelete: Cascade) /// Relation to the shared file.
+  folderId String? @map("folder_id") /// ID of the shared folder (if applicable).
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade) /// Relation to the shared folder.
+
+  // Track user who created the share link
+  createdByUserId String? @map("created_by_user_id") /// ID of the user who created the share link.
+  createdByUser   User?   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade) /// Relatio to the user who created the link.
+
+  @@map("share_links")
+}
+
+enum Permission {
+  READ
+  EDIT
+}
