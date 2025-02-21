@@ -1,0 +1,9 @@
+header {
+  padding: 1em 0.5em;
+  box-shadow: 0 4px 3px -3px gray;
+}
+
+header > h1 a {
+  color: black;
+  text-decoration: none;
+}

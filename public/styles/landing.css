@@ -1,0 +1,21 @@
+main {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+}
+
+.landing-content h1 {
+  font-size: 72px;
+}
+
+.landing-content h2 {
+  font-size: 36px;
+}

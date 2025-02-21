@@ -1,0 +1,47 @@
+<form action="/sign-up" method="POST">
+  <label for="username">Username: </label>
+  <div class="error-message" id="username-error"></div>
+  <input
+    type="text"
+    name="username"
+    id="username"
+    minlength="3"
+    maxlength="32"
+    value="<%= formData ? formData.username : '' %>"
+    required
+  />
+
+  <label for="email">Email: </label>
+  <div class="error-message" id="email-error"></div>
+  <input
+    type="email"
+    name="email"
+    id="email"
+    maxlength="255"
+    value="<%= formData ? formData.email : '' %>"
+    required
+  />
+
+  <label for="password">Password: </label>
+  <div class="error-message" id="password-error"></div>
+  <input
+    type="password"
+    name="password"
+    id="password"
+    minlength="6"
+    value="<%= formData ? formData.password : '' %>"
+    required
+  />
+
+  <label for="confirm-password">Confirm Password: </label>
+  <div class="error-message" id="confirm-password-error"></div>
+  <input
+    type="password"
+    name="confirm-password"
+    id="confirm-password"
+    value="<%= formData ? formData['confirm-password'] : '' %>"
+    required
+  />
+
+  <button type="submit">Sign up</button>
+</form>

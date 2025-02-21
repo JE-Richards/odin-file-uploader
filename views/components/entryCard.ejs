@@ -1,0 +1,28 @@
+<div id="entry-card">
+  <h2><%= formType === "login" ? "Login" : "Sign Up" %></h2>
+
+  <% if (errors.length !== 0) {%>
+  <div class="form-submit-errors">
+    <h2>Issues with form submission:</h2>
+    <ul>
+      <% errors.forEach(function(error) { %>
+      <li><%= error.msg %></li>
+      <% }); %>
+    </ul>
+  </div>
+  <%} %>
+
+  <div class="form-container">
+    <% if (formType === "signup") {%> <%- include('./forms/signUpForm.ejs', {
+    formData }) %> <%} else { %> <%- include('./forms/loginForm.ejs', { formData
+    }) %> <% } %>
+  </div>
+
+  <p>
+    <% if (formType === "signup") {%> Already have an account?
+    <a href="/login" id="toggle-form">Login</a>
+    <% } else { %> Don't have an account?
+    <a href="/sign-up" id="toggle-form">Create Account</a>
+    <% } %>
+  </p>
+</div>
