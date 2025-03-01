@@ -22,6 +22,7 @@ const session = require("express-session");
 const passport = require("./config/passport");
 const { PrismaSessionStore } = require("@quixo3/prisma-session-store");
 const prisma = require("./config/prisma");
+const DatabaseError = require("./errors/DatabaseError");
 
 const loginRouter = require("./routes/loginRouter");
 const signUpRouter = require("./routes/signUpRouter");
@@ -77,6 +78,28 @@ app.use((req, res, next) => {
 app.use("/sign-up", signUpRouter());
 app.use("/login", loginRouter());
 app.use("/", landingRouter());
+
+// catch non-existant routes/pages
+app.use((req, res, next) => {
+  const err = new Error("The page you are looking for does not exist.");
+  err.statusCode = 404;
+  next(err);
+});
+
+// global error handler
+app.use((err, req, res, next) => {
+  if (err instanceof DatabaseError) {
+    return res.status(500).render("error", {
+      title: "Error",
+      error: "Something went wrong. Please try again later.",
+    });
+  }
+
+  res.status(err.statusCode || 500).render("error", {
+    title: "Error",
+    error: err.message || "Internal Server Error",
+  });
+});
 
 // =========================
 // 4. SERVER START

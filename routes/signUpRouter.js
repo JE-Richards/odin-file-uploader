@@ -6,6 +6,8 @@ const signUpRouter = () => {
 
   router.get("/", signUpController.getSignUp);
 
+  router.post("/", signUpController.postSignUp);
+
   return router;
 };
 
