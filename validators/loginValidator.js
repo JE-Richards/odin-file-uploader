@@ -5,6 +5,10 @@
 // It uses `express-validator` to enforce input requirements and ensure data
 // integrity before submission.
 //
+// Validates the following fields:
+// - username: Ensures a valid format, length constraint, and no empty input.
+// - password: Ensures minimum length requirements and no empty input.
+//
 // Sections:
 // 1. Validator
 // 2. Export
