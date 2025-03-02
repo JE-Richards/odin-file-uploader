@@ -18,6 +18,7 @@
 // =========================
 const ValidationError = require("../errors/ValidationError");
 const DatabaseError = require("../errors/DatabaseError");
+const NotFoundError = require("../errors/NotFoundError");
 
 // =========================
 // 2. CONTROLLER FUNCTIONS
@@ -34,7 +35,7 @@ const DatabaseError = require("../errors/DatabaseError");
 // =========================
 function handlePrismaError(err) {
   // Forward known validation errors
-  if (err instanceof ValidationError) {
+  if (err instanceof ValidationError || err instanceof NotFoundError) {
     throw err;
   }
 

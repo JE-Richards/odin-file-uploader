@@ -19,6 +19,8 @@ const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
 const prisma = require("./prisma");
 const NotFoundError = require("../errors/NotFoundError");
+const DatabaseError = require("../errors/DatabaseError");
+const { getUserById, getUserByUsername } = require("../services/userService");
 
 // =========================
 // 2. LOCAL STRATEGY - AUTHENTICATION LOGIC
@@ -26,11 +28,7 @@ const NotFoundError = require("../errors/NotFoundError");
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
-      const user = await prisma.user.findUnique({ where: { username } });
-
-      if (!user) {
-        throw new NotFoundError("user", { username });
-      }
+      const user = await getUserByUsername(username);
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
@@ -41,6 +39,12 @@ passport.use(
     } catch (err) {
       if (err instanceof NotFoundError) {
         return done(null, false, { message: `User ${username} not found.` });
+      }
+
+      if (err instanceof DatabaseError) {
+        return done(null, false, {
+          message: "Database connection issue. Please try again later.",
+        });
       }
 
       return done(err);
@@ -59,11 +63,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id } });
-
-    if (!user) {
-      throw new NotFoundError("user", { id });
-    }
+    const user = await getUserById(id);
 
     done(null, user);
   } catch (err) {
