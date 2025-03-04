@@ -36,6 +36,7 @@ const getLoginPage = (req, res, next) => {
     formData: {},
     errors: [],
     formType: "login",
+    validationScript: "/scripts/loginValidation.js",
   });
 };
 
@@ -62,6 +63,7 @@ const postLogin = [
         formData: req.body,
         errors: formErrors,
         formType: "login",
+        validationScript: "/scripts/loginValidation.js",
       });
     }
 
@@ -83,6 +85,7 @@ const postLogin = [
           formData: req.body,
           errors: formErrors,
           formType: "login",
+          validationScript: "/scripts/loginValidation.js",
         });
       }
 

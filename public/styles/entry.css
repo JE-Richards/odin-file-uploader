@@ -27,6 +27,7 @@ main {
   box-shadow: 0 3px 10px gray;
   padding: 2em;
   border-radius: 8px;
+  width: 50vw;
 }
 
 .error-message,
@@ -42,6 +43,7 @@ main {
 
 .error-message {
   margin: 0.25em 0;
+  text-wrap: wrap;
 }
 
 #entry-card > h2,
@@ -61,4 +63,14 @@ label {
 form button {
   margin: 1rem 0;
   padding: 0.25rem 0.5rem;
+}
+
+input:user-invalid {
+  border-color: red;
+}
+
+@media (min-width: 1150px) {
+  #entry-card {
+    max-width: 575px;
+  }
 }

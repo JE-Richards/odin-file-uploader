@@ -37,6 +37,7 @@ const getSignUpPage = (req, res, next) => {
     formData: {},
     errors: [],
     formType: "signup",
+    validationScript: "/scripts/signUpValidation.js",
   });
 };
 
@@ -63,6 +64,7 @@ const postSignUp = [
         errors: formErrors,
         formData: req.body,
         formType: "signup",
+        validationScript: "/scripts/signUpValidation.js",
       });
     }
 
@@ -78,6 +80,7 @@ const postSignUp = [
           errors: formErrors,
           formData: req.body,
           formType: "signup",
+          validationScript: "/scripts/signUpValidation.js",
         });
       }
 
