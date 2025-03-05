@@ -25,6 +25,7 @@ const prisma = require("./config/prisma");
 const DatabaseError = require("./errors/DatabaseError");
 
 const loginRouter = require("./routes/loginRouter");
+const logoutRouter = require("./routes/logoutRouter");
 const signUpRouter = require("./routes/signUpRouter");
 const landingRouter = require("./routes/landingRouter");
 
@@ -77,6 +78,7 @@ app.use((req, res, next) => {
 
 app.use("/sign-up", signUpRouter());
 app.use("/login", loginRouter());
+app.use("/logout", logoutRouter());
 app.use("/", landingRouter());
 
 // catch non-existant routes/pages

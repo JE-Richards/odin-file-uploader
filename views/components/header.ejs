@@ -3,6 +3,10 @@
   <nav>
     <% if (user) { %>
     <p>Welcome, <%= user.username %>.</p>
-    <% } else { %> <% } %>
+    <a href="/logout">Logout</a>
+    <% } else { %>
+    <a href="/sign-up">Sign Up</a>
+    <a href="/login">Login</a>
+    <% } %>
   </nav>
 </header>
