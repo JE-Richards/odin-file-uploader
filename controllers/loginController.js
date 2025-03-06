@@ -72,7 +72,7 @@ const postLogin = [
         return next(err);
       }
 
-      console.log(info);
+      console.log("passport.authenticate info from postLogin call: ", info);
 
       // If no user or any other errors
       if (!user) {

@@ -20,7 +20,7 @@ const express = require("express");
 const path = require("node:path");
 const session = require("express-session");
 const passport = require("./config/passport");
-const { PrismaSessionStore } = require("@quixo3/prisma-session-store");
+const CustomPrismaSessionStore = require("./config/customPrismaSessionStore");
 const prisma = require("./config/prisma");
 const DatabaseError = require("./errors/DatabaseError");
 
@@ -44,18 +44,19 @@ app.use(express.urlencoded({ extended: true }));
 // Middleware to serve static files from 'public' folder (CSS, JS, etc.)
 app.use(express.static(path.join(__dirname, "public")));
 
+const customStore = new CustomPrismaSessionStore(prisma, {
+  dbRecordIdIsSessionId: true,
+  cleanupIntervalMs: 1000 * 60 * 2, // Run cleanup every 2 minutes
+  sessionDataProperty: "data", // Ensures the session data is correctly mapped
+});
+
 // Passport set up for user authentication
 app.use(
   session({
     secret: process.env.SESSION_SECRET, // session secret
     resave: false, // Don't save session if unmodified
     saveUninitialized: false, // Don't create sessions until they are modified
-    store: new PrismaSessionStore(
-      prisma, // prisma client instance - no tablename needed as schema table is named Session
-      {
-        dbRecordIdIsSessionId: true,
-      }
-    ),
+    store: customStore,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // Set cookie experation time to 1 day
     },

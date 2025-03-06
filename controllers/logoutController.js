@@ -20,7 +20,12 @@ const userLogout = (req, res, next) => {
     if (err) {
       return next(err);
     }
-    res.redirect("/login");
+    req.session.destroy((err) => {
+      if (err) {
+        return next(err);
+      }
+      res.redirect("/login");
+    });
   });
 };
 
