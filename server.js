@@ -23,11 +23,13 @@ const passport = require("./config/passport");
 const CustomPrismaSessionStore = require("./config/customPrismaSessionStore");
 const prisma = require("./config/prisma");
 const DatabaseError = require("./errors/DatabaseError");
+const multer = require("multer");
 
 const loginRouter = require("./routes/loginRouter");
 const logoutRouter = require("./routes/logoutRouter");
 const signUpRouter = require("./routes/signUpRouter");
 const landingRouter = require("./routes/landingRouter");
+const uploadRouter = require("./routes/uploadRouter");
 
 const app = express();
 
@@ -76,7 +78,7 @@ app.use((req, res, next) => {
 // =========================
 // 3. ROUTE CONFIGURATION
 // =========================
-
+app.use("/upload", uploadRouter());
 app.use("/sign-up", signUpRouter());
 app.use("/login", loginRouter());
 app.use("/logout", logoutRouter());
@@ -91,6 +93,21 @@ app.use((req, res, next) => {
 
 // global error handler
 app.use((err, req, res, next) => {
+  // Multer-specific errors
+  if (err instanceof multer.MulterError) {
+    const errors = [];
+    if (err.code === "LIMIT_FILE_SIZE") {
+      errors.push({ msg: "One of more files exceed the 5MB limit." });
+    } else if (err.code === "LIMIT_FIELD_COUNT") {
+      errors.push({ msg: "Too many files! Maximum of 10." });
+    }
+
+    return res.status(400).render("upload", {
+      errors,
+    });
+  }
+
+  // Database-specific errors
   if (err instanceof DatabaseError) {
     return res.status(500).render("error", {
       title: "Error",
@@ -98,6 +115,7 @@ app.use((err, req, res, next) => {
     });
   }
 
+  // Generic errors
   res.status(err.statusCode || 500).render("error", {
     title: "Error",
     error: err.message || "Internal Server Error",

@@ -1,0 +1,67 @@
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px gray;
+  padding: 2em;
+  border-radius: 8px;
+  width: 50vw;
+}
+
+.wrapper h1 {
+  margin-bottom: 2rem;
+}
+
+.error-message,
+.form-submit-errors {
+  color: red;
+  border: 1px solid red;
+  padding: 0.25em;
+}
+
+.error-message:empty {
+  display: none;
+}
+
+.error-message {
+  margin: 0.25em 0;
+  text-wrap: wrap;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-top: 1rem;
+}
+
+input {
+  margin-top: 0.5rem;
+}
+
+form button {
+  margin: 1rem 0;
+  padding: 0.25rem 0.5rem;
+}
+
+@media (min-width: 1150px) {
+  .wrapper {
+    max-width: 575px;
+  }
+}

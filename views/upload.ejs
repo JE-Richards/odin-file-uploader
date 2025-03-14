@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload files</title>
+    <link rel="stylesheet" href="/styles/global.css" />
+    <link rel="stylesheet" href="/styles/header.css" />
+    <link rel="stylesheet" href="/styles/upload.css" />
+    <script src="/scripts/upload.js" defer></script>
+  </head>
+  <body>
+    <%- include('./components/header') %>
+    <main>
+      <div class="wrapper">
+        <h1>Select files to upload</h1>
+        <ul>
+          <li>You can select up to 10 files.</li>
+          <li>Each file must be less than 5MB in size.</li>
+          <li>
+            Only the following file formats are accepted: MP3, MP4, JPEG, PNG,
+            GIF, SVG, PDF, TXT
+          </li>
+        </ul>
+        <% if (errors.length !== 0) {%>
+        <div class="form-submit-errors">
+          <h2>Issues with form submission:</h2>
+          <ul>
+            <% errors.forEach(function(error) { %>
+            <li><%= error.msg %></li>
+            <% }); %>
+          </ul>
+        </div>
+        <% } %>
+        <form action="/upload" method="post">
+          <label for="file">Select files to upload: </label>
+          <div class="error-message" id="file-error"></div>
+          <input
+            type="file"
+            name="file"
+            id="file"
+            accept=".mp3,.mp4,.jpeg,.png,.gif,.svg,.pdf,.txt"
+            multiple
+            required
+          />
+          <button type="submit">Upload</button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>
