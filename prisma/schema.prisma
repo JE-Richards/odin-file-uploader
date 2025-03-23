@@ -31,7 +31,10 @@ model User {
 /// Each file has a unique ID and storage url.
 model File {
   id         String   @id @default(uuid()) /// Unique file ID (UUID).
+  cloudId    String   @unique @map("cloud_id") /// Unique ID provided by cloud storage provider
   filename   String /// Filename of the uploaded file.
+  format     String /// Format of the uploaded file
+  size       Int? /// File size in bytes
   url        String   @unique /// URL for the file hosted on a cloud storage solution.
   uploadedAt DateTime @default(now()) @map("uploaded_at") /// Timestamp of when the file was uploaded.
 
