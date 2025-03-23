@@ -30,8 +30,10 @@
             <% }); %>
           </ul>
         </div>
+        <% } %> <% if (message) {%>
+        <h2 class="success-message"><%= message %></h2>
         <% } %>
-        <form action="/upload" method="post">
+        <form action="/upload" method="post" enctype="multipart/form-data">
           <label for="file">Select files to upload: </label>
           <div class="error-message" id="file-error"></div>
           <input

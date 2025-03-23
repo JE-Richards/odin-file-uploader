@@ -17,6 +17,7 @@
 // =========================
 const cloudinary = require("../config/cloudinary");
 const asyncHandler = require("express-async-handler");
+const { createFiles } = require("../services/fileService");
 
 // =========================
 // 2. CONTROLLER FUNCTIONS
@@ -27,7 +28,7 @@ const asyncHandler = require("express-async-handler");
 // Renders the upload page, displaying an empty form with no errors.
 // =========================
 const getUploadPage = (req, res) => {
-  res.render("upload", { errors: [] });
+  res.render("upload", { errors: [], message: "" });
 };
 
 // =========================
@@ -46,7 +47,7 @@ const postUpload = asyncHandler(async (req, res, next) => {
   // check multer errors or no files
   if (!req.files || req.files.length === 0) {
     errors.push({ msg: "No files uploaded or invalid upload attempt." });
-    return res.render("upload", { errors });
+    return res.render("upload", { errors, message: "" });
   }
 
   // Upload to cloudinary - handle multiple files
@@ -54,18 +55,30 @@ const postUpload = asyncHandler(async (req, res, next) => {
     (file) =>
       new Promise((resolve, reject) => {
         cloudinary.uploader
-          .upload_stream({ resource_type: "auto" }, (error, result) => {
-            if (error) return reject(error);
-            resolve(result.secure_url);
-          })
+          .upload_stream(
+            {
+              resource_type: "auto",
+              filename_override: file.originalname,
+              use_filename: true,
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          )
           .end(file.buffer);
       })
   );
 
-  const urls = await Promise.all(uploadPromises);
+  const results = await Promise.all(uploadPromises);
+  console.log(results);
 
-  // below is temporary until database integration
-  res.send(`${urls.join(", ")}`);
+  const { count } = await createFiles(results, req.user.id);
+
+  res.render("upload", {
+    errors: [],
+    message: `Successfully uploaded ${count} files.`,
+  });
 });
 
 // =========================

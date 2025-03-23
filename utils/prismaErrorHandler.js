@@ -21,7 +21,7 @@ const DatabaseError = require("../errors/DatabaseError");
 const NotFoundError = require("../errors/NotFoundError");
 
 // =========================
-// 2. CONTROLLER FUNCTIONS
+// 2. ERROR HANNDLING FUNCTIONS
 // =========================
 // =========================
 // 2.1. HANDLEPRISMAERROR

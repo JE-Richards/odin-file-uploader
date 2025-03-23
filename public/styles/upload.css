@@ -60,6 +60,10 @@ form button {
   padding: 0.25rem 0.5rem;
 }
 
+.success-message {
+  color: darkgreen;
+}
+
 @media (min-width: 1150px) {
   .wrapper {
     max-width: 575px;
