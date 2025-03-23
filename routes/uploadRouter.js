@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const multer = require("multer");
 const uploadController = require("../controllers/uploadController");
+const { ensureUserAuth } = require("./middleware/authMiddleware");
 
 // Multer set up
 const upload = multer({
@@ -32,8 +33,13 @@ const upload = multer({
 const uploadRouter = () => {
   const router = new Router();
 
-  router.get("/", uploadController.getUploadPage);
-  router.post("/", upload.array("file"), uploadController.postUpload);
+  router.get("/", ensureUserAuth, uploadController.getUploadPage);
+  router.post(
+    "/",
+    ensureUserAuth,
+    upload.array("file"),
+    uploadController.postUpload
+  );
 
   return router;
 };
