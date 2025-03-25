@@ -30,6 +30,7 @@ const logoutRouter = require("./routes/logoutRouter");
 const signUpRouter = require("./routes/signUpRouter");
 const landingRouter = require("./routes/landingRouter");
 const uploadRouter = require("./routes/uploadRouter");
+const viewUserFilesRouter = require("./routes/viewUserFilesRouter");
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use("/upload", uploadRouter());
 app.use("/sign-up", signUpRouter());
 app.use("/login", loginRouter());
 app.use("/logout", logoutRouter());
+app.use("/files", viewUserFilesRouter());
 app.use("/", landingRouter());
 
 // catch non-existant routes/pages

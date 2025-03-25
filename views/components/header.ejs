@@ -1,12 +1,16 @@
 <header>
+  <% if (user) { %>
+  <h1><a href="/files">Odin's Archive</a></h1>
+  <nav>
+    <p>Welcome, <%= user.username %>.</p>
+    <a href="/upload">Upload Files</a>
+    <a href="/logout">Logout</a>
+  </nav>
+  <% } else { %>
   <h1><a href="/">Odin's Archive</a></h1>
   <nav>
-    <% if (user) { %>
-    <p>Welcome, <%= user.username %>.</p>
-    <a href="/logout">Logout</a>
-    <% } else { %>
     <a href="/sign-up">Sign Up</a>
     <a href="/login">Login</a>
-    <% } %>
   </nav>
+  <% } %>
 </header>

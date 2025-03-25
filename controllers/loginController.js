@@ -31,6 +31,10 @@ const { validationResult } = require("express-validator");
 // Renders the entry page with the login form and no errors.
 // =========================
 const getLoginPage = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return res.redirect("/files");
+  }
+
   res.render("entry", {
     title: "Login - Odin's Archive",
     formData: {},
@@ -95,7 +99,7 @@ const postLogin = [
           return next(err);
         }
 
-        return res.redirect("/");
+        return res.redirect("/files");
       });
     })(req, res, next);
   }),

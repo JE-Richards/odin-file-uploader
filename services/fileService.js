@@ -10,6 +10,7 @@
 // 1. Setup
 // 2. File Functions
 //    2.1. createFiles
+//    2.2. getFilesByUserId
 // 3. Export
 // =========================
 
@@ -33,7 +34,7 @@ const NotFoundError = require("../errors/NotFoundError");
 //
 // Parameters:
 // - uploads (array): Array of Cloudinary response objects containing upload metadata.
-// - userId (integet): The ID of the user who performed the upload, from the session store.
+// - userId (string): The ID of the user who performed the upload, from the session store.
 //
 // Returns:
 // - An object with the count of created records.
@@ -78,6 +79,51 @@ async function createFiles(uploads, userId) {
 }
 
 // =========================
+// 2.2. GETFILESBYUSERID
+// =========================
+// Retrieves all files associated with a given user ID.
+// Additionally, retrieves the users username from the user model.
+//
+// Parameters:
+// - userId (string): The ID of the user whose files need retrieving.
+//
+// Returns:
+// - An array of objects if files exist.
+// - An empty array if no files exist for the user.
+//
+// Throws:
+// - ValidationError: If userId is missing or invalid (e.g. not a number).
+// =========================
+async function getFilesByUserId(userId) {
+  try {
+    // Validate userId (minimal check, assumes auth middleware ensures existence)
+    if (!userId || typeof userId !== "string") {
+      throw new ValidationError(
+        "Valid user ID (UUID) is required to view files."
+      );
+    }
+
+    const files = await prisma.file.findMany({
+      where: {
+        userId,
+      },
+      // join on username from users model
+      include: {
+        user: {
+          select: {
+            username: true,
+          },
+        },
+      },
+    });
+
+    return files;
+  } catch (err) {
+    handlePrismaError(err);
+  }
+}
+
+// =========================
 // 3. EXPORT
 // =========================
-module.exports = { createFiles };
+module.exports = { createFiles, getFilesByUserId };

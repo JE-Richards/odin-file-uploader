@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View Files</title>
+    <link rel="stylesheet" href="/styles/global.css" />
+    <link rel="stylesheet" href="/styles/header.css" />
+    <link rel="stylesheet" href="/styles/viewUserFiles.css" />
+  </head>
+  <body>
+    <%- include('./components/header') %>
+    <main>
+      <div class="container">
+        <% if (files.length === 0) {%>
+        <h1>Oops! Looks like you don't have any files stored.</h1>
+        <h2>Upload your first file <a href="/upload">here</a>.</h2>
+        <%} else { %>
+        <table>
+          <tr>
+            <th>File</th>
+            <th>Owner</th>
+            <th>Uploaded at</th>
+          </tr>
+          <% files.forEach(function(file) { %>
+          <tr>
+            <td>
+              <a href="<%= file.url %>"
+                ><%= file.filename %>.<%= file.format %></a
+              >
+            </td>
+            <td><%= file.user.username %></td>
+            <td>
+              <%= file.uploadedAt.toLocaleString('en-GB', { day: '2-digit',
+              month: 'short', year: 'numeric', hour: '2-digit', minute:
+              '2-digit' }) %>
+            </td>
+          </tr>
+          <% }) %>
+        </table>
+        <% } %>
+      </div>
+    </main>
+  </body>
+</html>
