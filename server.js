@@ -49,7 +49,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const customStore = new CustomPrismaSessionStore(prisma, {
   dbRecordIdIsSessionId: true,
-  cleanupIntervalMs: 1000 * 60 * 2, // Run cleanup every 2 minutes
+  checkPeriod: 1000 * 60 * 2, // Run cleanup every 2 minutes
   sessionDataProperty: "data", // Ensures the session data is correctly mapped
 });
 
