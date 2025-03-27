@@ -41,7 +41,9 @@ model File {
   userId String @map("user_id") /// ID of the user who uploaded the file.
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) /// Relation to the user who uploaded the file.
 
-  folder     Folder[] /// Folder the file is stored in.
+  folderId String? @map("folder_id") /// ID of the folder the file is stored in
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade) /// Relation to the file the folder is stored in
+
   shared     SharedFile[] /// Users the file is shared with.
   sharedLink SharedLink[] /// Links created to share the file publicly.
 
