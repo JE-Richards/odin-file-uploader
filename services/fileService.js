@@ -35,6 +35,8 @@ const NotFoundError = require("../errors/NotFoundError");
 // Parameters:
 // - uploads (array): Array of Cloudinary response objects containing upload metadata.
 // - userId (string): The ID of the user who performed the upload, from the session store.
+// - folderId (string | null): Optional. If provided, uploads the file into the folder. If null (default), uploads the
+// file to the root level.
 //
 // Returns:
 // - An object with the count of created records.
@@ -42,7 +44,7 @@ const NotFoundError = require("../errors/NotFoundError");
 // Throws:
 // - ValidationError: If userId is missing or invalid (e.g. not a number).
 // =========================
-async function createFiles(uploads, userId) {
+async function createFiles(uploads, userId, folderId = null) {
   try {
     // Validate userId (minimal check, assumes auth middleware ensures existence)
     if (!userId || typeof userId !== "string") {
@@ -61,6 +63,7 @@ async function createFiles(uploads, userId) {
         url: upload.secure_url,
         uploadedAt: new Date(upload.created_at),
         userId: userId,
+        folderId: folderId,
       };
     });
 
@@ -81,11 +84,13 @@ async function createFiles(uploads, userId) {
 // =========================
 // 2.2. GETFILESBYUSERID
 // =========================
-// Retrieves all files associated with a given user ID.
+// Retrieves all files within a specified folder associated with a given user ID.
 // Additionally, retrieves the users username from the user model.
 //
 // Parameters:
 // - userId (string): The ID of the user whose files need retrieving.
+// - folderId (string | null): Optional. If provided, only files within the specified folder are retrieved. If null
+// (default), retrieves all files at the root level.
 //
 // Returns:
 // - An array of objects if files exist.
@@ -94,7 +99,7 @@ async function createFiles(uploads, userId) {
 // Throws:
 // - ValidationError: If userId is missing or invalid (e.g. not a number).
 // =========================
-async function getFilesByUserId(userId) {
+async function getFilesByUserId(userId, folderId = null) {
   try {
     // Validate userId (minimal check, assumes auth middleware ensures existence)
     if (!userId || typeof userId !== "string") {
@@ -106,6 +111,7 @@ async function getFilesByUserId(userId) {
     const files = await prisma.file.findMany({
       where: {
         userId,
+        folderId,
       },
       // join on username from users model
       include: {

@@ -12,7 +12,56 @@
     <%- include('./components/header') %>
     <main>
       <div class="container">
-        <% if (files.length === 0) {%>
+        <div class="form-container">
+          <form
+            action="/files<%= currentPath ? '/' + currentPath : ''%>/create-folder"
+            method="post"
+          >
+            <h1>Create a folder</h1>
+            <label for="folder-name"></label>
+            <div class="error-message" id="folder-name-error"></div>
+            <input
+              type="text"
+              name="folder-name"
+              id="folder-name"
+              minlength="3"
+              maxlength="32"
+              required
+            />
+
+            <button type="submit">Create folder</button>
+          </form>
+        </div>
+        <div class="container">
+          <!-- Breadcrumbs Section -->
+          <div class="breadcrumbs">
+            <a href="/files">Home</a>
+            <% if (currentPath) { const pathParts = currentPath.split('/'); let
+            cumulativePath = ''; pathParts.forEach(function(part, index) {
+            cumulativePath += '/' + part; if (index !== pathParts.length - 1) {
+            %> &gt; <a href="/files<%= cumulativePath %>"><%= part %></a> <% }
+            else { %> &gt; <span><%= part %></span>
+            <% } }); } %>
+          </div>
+        </div>
+        <% if (folders.length !== 0) {%>
+        <table>
+          <tr>
+            <th>Folders</th>
+          </tr>
+          <% folders.forEach(function(folder) { %>
+          <tr>
+            <td>
+              <a
+                href="/files<%= currentPath ? '/' + currentPath : '' %>/<%= folder.name %>"
+              >
+                <%= folder.name %>
+              </a>
+            </td>
+          </tr>
+          <% }) %>
+        </table>
+        <%}%> <% if (files.length === 0) {%>
         <h1>Oops! Looks like you don't have any files stored.</h1>
         <h2>Upload your first file <a href="/upload">here</a>.</h2>
         <%} else { %>
