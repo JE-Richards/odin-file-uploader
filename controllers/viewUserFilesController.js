@@ -8,6 +8,10 @@
 // 2. Controller Functions
 //    2.1. getUserFilesPage
 //    2.2. postCreateFolder
+//    2.3. postRenameFile
+//    2.4. postDeleteFile
+//    2.5. postRenameFolder
+//    2.6. postDeleteFolder
 // 3. Export
 // =========================
 
@@ -15,11 +19,19 @@
 // 1. SETUP
 // =========================
 const asyncHandler = require("express-async-handler");
-const { getFilesByUserId } = require("../services/fileService");
+const {
+  getFilesByUserId,
+  getFileByUserAndFolder,
+  renameFileById,
+  deleteFileById,
+} = require("../services/fileService");
 const {
   createFolder,
   getFoldersByUserId,
   getFolderByPath,
+  renameFolderById,
+  getFolderByUserAndParent,
+  deleteFolderById,
 } = require("../services/folderService");
 const NotFoundError = require("../errors/NotFoundError");
 
@@ -111,6 +123,244 @@ const postCreateFolder = asyncHandler(async (req, res, next) => {
 });
 
 // =========================
+// 2.3. POSTRENAMEFILE
+// =========================
+// Handles requests to rename an existing file.
+//
+// This function:
+// - Extracts information from the client request.
+// - Uses the information to find the correct file.
+// - Renames the file.
+// - Handles errors gracefully.
+//
+// Parameters:
+// - req.user.id (string): The user ID stored in session cookie.
+// - req.body.currentPath (string): The filepath passed from the client-side request.
+// - req.body.oldItemName (string): The current name of the file.
+// - req.body.newItemName (string): The new filename submitted by the user.
+//
+// Returns:
+// - An object containing a successful rename message.
+//
+// Throws:
+// - NotFoundError: If the file isn't found.
+// - ValidationError: If the new filename is invalid.
+// - Other: Prisma query functions from `fileService.js` and `folderService.js` have their own error handling.
+// =========================
+const postRenameFile = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const { currentPath, oldItemName, newItemName } = req.body;
+
+  // Verify path to find parent folder ID
+  const parentFolder = currentPath
+    ? await getFolderByPath(userId, currentPath)
+    : null;
+  const folderId = parentFolder ? parentFolder.id : null;
+
+  // Find the file
+  const file = await getFileByUserAndFolder(userId, oldItemName, folderId);
+  if (!file) {
+    throw new NotFoundError("File not found.");
+  }
+
+  // Validate the new filename
+  if (
+    !newItemName ||
+    typeof newItemName !== "string" ||
+    newItemName.trim() === ""
+  ) {
+    throw new ValidationError("A valid new filename is required.");
+  }
+  const filenameRegex = /^[a-zA-Z0-9-_ .]+$/;
+  if (!filenameRegex.test(newItemName)) {
+    throw new ValidationError(
+      "Filename contains invalid characters. Only letters, numbers, spaces, dashes, underscores, and dots are allowed."
+    );
+  }
+
+  // Rename the file
+  const updatedFile = await renameFileById(userId, file.id, newItemName.trim());
+
+  res.json({ message: "File renamed successfully" });
+});
+
+// =========================
+// 2.4. POSTDELETEFILE
+// =========================
+// Handles requests to delete an existing file.
+//
+// This function:
+// - Extracts information from the client request.
+// - Uses the information to find the correct file.
+// - Deletes the file.
+// - Handles errors gracefully.
+//
+// Parameters:
+// - req.user.id (string): The user ID stored in session cookie.
+// - req.body.currentPath (string): The filepath passed from the client-side request.
+// - req.body.itemName (string): The name of the file to be deleted.
+//
+// Returns:
+// - An object containing a successful deletion message.
+//
+// Throws:
+// - NotFoundError: If the file isn't found.
+// - Other: Prisma query functions from `fileService.js` and `folderService.js` have their own error handling.
+// =========================
+const postDeleteFile = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const { currentPath, itemName } = req.body;
+
+  // verify path to find parent folder ID
+  const parentFolder = currentPath
+    ? await getFolderByPath(userId, currentPath)
+    : null;
+  const folderId = parentFolder ? parentFolder.id : null;
+
+  // Find the file
+  const file = await getFileByUserAndFolder(userId, itemName, folderId);
+  if (!file) {
+    throw new NotFoundError("File not found.");
+  }
+
+  // Delete the file
+  await deleteFileById(file.id, userId);
+
+  res.json({ message: "File deleted successfully" });
+});
+
+// =========================
+// 2.5. POSTRENAMEFOLDER
+// =========================
+// Handles requests to rename an existing folder.
+//
+// This function:
+// - Extracts information from the client request.
+// - Uses the information to find the correct folder.
+// - Renames the folder.
+// - Handles errors gracefully.
+//
+// Parameters:
+// - req.user.id (string): The user ID stored in session cookie.
+// - req.body.currentPath (string): The filepath passed from the client-side request.
+// - req.body.oldItemName (string): The current name of the folder.
+// - req.body.newItemName (string): The new folder name submitted by the user.
+//
+// Returns:
+// - An object containing a successful rename message.
+//
+// Throws:
+// - NotFoundError: If the folder isn't found.
+// - ValidationError: If the new folder name is invalid.
+// - Other: Prisma query functions from `fileService.js` and `folderService.js` have their own error handling.
+// =========================
+const postRenameFolder = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const { currentPath, oldItemName, newItemName } = req.body;
+
+  // Verify path to find parent folder ID
+  const parentFolder = currentPath
+    ? await getFolderByPath(userId, currentPath)
+    : null;
+  const parentFolderId = parentFolder ? parentFolder.id : null;
+
+  // Find the file
+  const folder = await getFolderByUserAndParent(
+    userId,
+    oldItemName,
+    parentFolderId
+  );
+  if (!folder) {
+    throw new NotFoundError("Folder not found.");
+  }
+
+  // Validate the new folder name
+  if (
+    !newItemName ||
+    typeof newItemName !== "string" ||
+    newItemName.trim() === ""
+  ) {
+    throw new ValidationError("A valid new folder name is required.");
+  }
+  const folderNameRegex = /^[a-zA-Z0-9-_ ]+$/;
+  if (!folderNameRegex.test(newItemName)) {
+    throw new ValidationError(
+      "Folder name contains invalid characters. Only letters, numbers, spaces, dashes, and underscores are allowed."
+    );
+  }
+
+  // Rename the folder
+  const updatedFolder = await renameFolderById(
+    folder.id,
+    userId,
+    newItemName.trim()
+  );
+
+  res.json({ message: "Folder renamed successfully" });
+});
+
+// =========================
+// 2.6. POSTDELETEFOLDER
+// =========================
+// Handles requests to delete an existing folder.
+//
+// This function:
+// - Extracts information from the client request.
+// - Uses the information to find the correct folder.
+// - Deletes the folder.
+// - Handles errors gracefully.
+//
+// Parameters:
+// - req.user.id (string): The user ID stored in session cookie.
+// - req.body.currentPath (string): The filepath passed from the client-side request.
+// - req.body.itemName (string): The name of the folder to be deleted.
+//
+// Returns:
+// - An object containing a successful deletion message.
+//
+// Throws:
+// - NotFoundError: If the folder isn't found.
+// - Other: Prisma query functions from `fileService.js` and `folderService.js` have their own error handling.
+// =========================
+const postDeleteFolder = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const { currentPath, itemName } = req.body;
+  console.log("userId: ", userId);
+  console.log("req body: ", req.body);
+
+  // verify path to find parent folder ID
+  const parentFolder = currentPath
+    ? await getFolderByPath(userId, currentPath)
+    : null;
+  const parentFolderId = parentFolder ? parentFolder.id : null;
+  console.log(parentFolderId);
+
+  // Find the file
+  const folder = await getFolderByUserAndParent(
+    userId,
+    itemName,
+    parentFolderId
+  );
+  if (!folder) {
+    throw new NotFoundError("File not found.");
+  }
+
+  console.log(folder);
+
+  // Delete the file
+  await deleteFolderById(folder.id, userId);
+
+  res.json({ message: "Folder deleted successfully" });
+});
+
+// =========================
 // 3. EXPORT
 // =========================
-module.exports = { getUserFilesPage, postCreateFolder };
+module.exports = {
+  getUserFilesPage,
+  postCreateFolder,
+  postRenameFile,
+  postDeleteFile,
+  postRenameFolder,
+  postDeleteFolder,
+};

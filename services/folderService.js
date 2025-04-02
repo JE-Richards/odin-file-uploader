@@ -7,9 +7,13 @@
 // Sections:
 // 1. Setup
 // 2. Folder Functions
+//    2.0. Helper functions
 //    2.1. createFolder
 //    2.2. getFoldersByUserId
 //    2.3. getFolderByPath
+//    2.4. deleteFolderById
+//    2.5. renameFolderById
+//    2.6. getFolderByUserAndParent
 // 3. Export
 // =========================
 
@@ -17,6 +21,7 @@
 // 1. SETUP
 // =========================
 const prisma = require("../config/prisma");
+const cloudinary = require("../config/cloudinary");
 const ValidationError = require("../errors/ValidationError");
 const handlePrismaError = require("../utils/prismaErrorHandler");
 const NotFoundError = require("../errors/NotFoundError");
@@ -24,6 +29,24 @@ const NotFoundError = require("../errors/NotFoundError");
 // =========================
 // 2. FOLDER FUNCTIONS
 // =========================
+// =========================
+// 2.0. HELPER FUNCTIONS
+// =========================
+// Reusable utility functions.
+//
+// Functions:
+// - validUserIdCheck(userId, message):
+//    - Ensures the provided user ID is valid (non-empty string).
+//      - This is a minimal check as the auth middleware should validate users beforehand.
+//    - Throws a `ValidationError` if the ID is missing or invalid.
+//    - Accepts an optional `message` parameter to customize error messages.
+// =========================
+function validUserIdCheck(userId, message) {
+  if (!userId || typeof userId !== "string") {
+    throw new ValidationError(`Valid user ID (UUID) is required to ${message}`);
+  }
+}
+
 // =========================
 // 2.1. CREATEFOLDER
 // =========================
@@ -46,11 +69,7 @@ const NotFoundError = require("../errors/NotFoundError");
 // =========================
 async function createFolder(userId, folderName, parentFolderId = null) {
   try {
-    if (!userId || typeof userId !== "string") {
-      throw new ValidationError(
-        "Valid user ID (UUID) is required for creating folders."
-      );
-    }
+    validUserIdCheck(userId, "create a folder.");
 
     if (!folderName || typeof folderName !== "string") {
       throw new ValidationError("Folder name must be a non-empty string.");
@@ -96,11 +115,7 @@ async function createFolder(userId, folderName, parentFolderId = null) {
 // =========================
 async function getFoldersByUserId(userId, parentFolderId = null) {
   try {
-    if (!userId || typeof userId !== "string") {
-      throw new ValidationError(
-        "Valid user ID (UUID) is required for creating folders."
-      );
-    }
+    validUserIdCheck(userId, "view folders.");
 
     if (parentFolderId !== null && typeof parentFolderId !== "string") {
       throw new ValidationError(
@@ -170,6 +185,178 @@ async function getFolderByPath(userId, folderPath) {
 }
 
 // =========================
+// 2.4. DELETEFOLDERBYID
+// =========================
+// This function iterates through the folder hierarchy to find all files and subfolders contained within the specified
+// folder. Then, it deletes all files from Cloudinary and deletes the folder in the database (which cascades to all
+// files and subfolders).
+//
+// Parameters:
+// - folderId (string): The ID of the folder to be deleted.
+// - userId (string): The ID of the user who owns the folder.
+//
+// Returns:
+// - An object with a successful deletion message.
+// =========================
+async function deleteFolderById(folderId, userId) {
+  try {
+    validUserIdCheck(userId, "delete a folder.");
+
+    // Step 1 - fetch all folders and contents (subfolders and files)
+    const folder = await prisma.folder.findUnique({
+      where: {
+        id: folderId,
+        userId,
+      },
+      include: {
+        files: true, // fetch files inside the folder
+        children: {
+          include: { files: true }, // Fetch all files in subfolders
+        },
+      },
+    });
+
+    if (!folder) {
+      throw new NotFoundError("Folder not found.");
+    }
+
+    // Step 2 - collect the cloudId for each file to delete from Cloudinary
+    const allFiles = [
+      ...folder.files,
+      ...folder.children.flatMap((subfolder) => subfolder.files),
+    ];
+    const cloudinaryFileIds = allFiles.map((file) => file.cloudId);
+
+    // Step 3 - delete from Cloudinary first
+    if (cloudinaryFileIds.length > 0) {
+      await cloudinary.api.delete_resources(cloudinaryFileIds);
+    }
+
+    // Step 4 - delete the folder and cascade delete contents
+    await prisma.folder.delete({
+      where: {
+        id: folderId,
+      },
+    });
+
+    return { message: "Folder and its contents deleted successfully." };
+  } catch (err) {
+    handlePrismaError(err);
+  }
+}
+
+// =========================
+// 2.5. RENAMEFOLDERBYID
+// =========================
+// Renames a folder in the database.
+//
+// Parameters:
+// - folderId (string): The ID of the folder to rename.
+// - userId (string): The ID of the user who owns the folder.
+// - newFolderName (string): The new name for the folder.
+//
+// Returns:
+// - An object containing the updated folder details.
+//
+// Throws:
+// - ValidationError: If the userId is invalid or the newFolderName contains invalid characters.
+// =========================
+async function renameFolderById(folderId, userId, newFolderName) {
+  try {
+    validUserIdCheck(userId, "rename folders.");
+
+    // Validate folder name (allow letters, numbers, spaces, dashes, and underscores)
+    const filenameRegex = /^[a-zA-Z0-9-_ ]+$/;
+
+    if (
+      !newFolderName ||
+      typeof newFolderName !== "string" ||
+      newFolderName.trim() === ""
+    ) {
+      throw new ValidationError("A valid folder name is required.");
+    }
+
+    if (!filenameRegex.test(newFolderName)) {
+      throw new ValidationError(
+        "Filename contains invalid characters. Only letters, numbers, spaces, dashes, underscores, and dots are allowed."
+      );
+    }
+
+    const folder = await prisma.folder.update({
+      where: {
+        id: folderId,
+        userId,
+      },
+      data: {
+        name: newFolderName.trim(),
+      },
+    });
+
+    return folder;
+  } catch (err) {
+    if (typeof err !== "ValidationError") {
+      handlePrismaError(err);
+    }
+
+    throw err;
+  }
+}
+
+// =========================
+// 2.6. GETFOLDERBYUSERANDPARENT
+// =========================
+// Retrieves a folder by querying the folder name, the user ID who owns the folder, and parent folder ID the file is
+// stored in.
+//
+// Parameters:
+// - userId (string): The ID of the user who owns the folder.
+// - folderName (string): The name of the folder to be retrieved.
+// - parentFolderId (string): The ID of the folder the file is stored in, null if stored in root.
+//
+// Returns:
+// - An object containing the folder details.
+//
+// Throws:
+// - ValidationError: If the userId or folder name is invalid.
+// =========================
+async function getFolderByUserAndParent(userId, folderName, parentFolderId) {
+  try {
+    validUserIdCheck(userId, "retrieve folders");
+
+    if (
+      !folderName ||
+      typeof folderName !== "string" ||
+      folderName.trim() === ""
+    ) {
+      throw new ValidationError("Folder name must be a non-empty string.");
+    }
+
+    const folder = await prisma.folder.findFirst({
+      where: {
+        userId,
+        name: folderName,
+        parentFolderId,
+      },
+    });
+
+    return folder;
+  } catch (err) {
+    if (typeof err !== "ValidationError") {
+      handlePrismaError(err);
+    }
+
+    throw err;
+  }
+}
+
+// =========================
 // 3. EXPORT
 // =========================
-module.exports = { createFolder, getFoldersByUserId, getFolderByPath };
+module.exports = {
+  createFolder,
+  getFoldersByUserId,
+  getFolderByPath,
+  deleteFolderById,
+  renameFolderById,
+  getFolderByUserAndParent,
+};

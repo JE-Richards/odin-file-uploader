@@ -44,6 +44,9 @@ app.set("view engine", "ejs");
 // Middleware to parse URL-encoded data, required for form submissions
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware to parse JSON data, required for API requests like PATCH
+app.use(express.json());
+
 // Middleware to serve static files from 'public' folder (CSS, JS, etc.)
 app.use(express.static(path.join(__dirname, "public")));
 

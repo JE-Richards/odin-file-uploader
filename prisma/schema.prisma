@@ -47,6 +47,7 @@ model File {
   shared     SharedFile[] /// Users the file is shared with.
   sharedLink SharedLink[] /// Links created to share the file publicly.
 
+  @@unique([filename, userId, folderId]) // Ensure uniqueness at same folder level
   @@map("files")
 }
 
